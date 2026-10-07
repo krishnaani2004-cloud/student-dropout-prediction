@@ -1,0 +1,224 @@
+
+import streamlit as st
+import pandas as pd
+import joblib
+
+# Load trained model
+model = joblib.load("student_dropout_model.pkl")
+
+# Page configuration
+st.set_page_config(
+    page_title="Student Dropout Prediction",
+    page_icon="🎓",
+    layout="wide"
+)
+
+# Title
+st.title("🎓 Student Dropout Prediction System")
+st.write(
+    "Enter the student's details below to predict the possibility of dropout."
+)
+
+st.divider()
+
+# Student information
+st.header("Student Information")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    age = st.number_input("Age", min_value=15, max_value=60, value=22)
+    family_income = st.number_input(
+        "Family Income",
+        min_value=0,
+        value=30000
+    )
+    daily_study_hours = st.number_input(
+        "Daily Study Hours",
+        min_value=0.0,
+        max_value=24.0,
+        value=4.0
+    )
+
+with col2:
+    attendance_rate = st.number_input(
+        "Attendance Rate (%)",
+        min_value=0.0,
+        max_value=100.0,
+        value=75.0
+    )
+    assignment_delay_days = st.number_input(
+        "Assignment Delay Days",
+        min_value=0,
+        value=2
+    )
+    travel_time_minutes = st.number_input(
+        "Travel Time (Minutes)",
+        min_value=0,
+        value=30
+    )
+
+with col3:
+    stress_index = st.number_input(
+        "Stress Index",
+        min_value=0.0,
+        max_value=10.0,
+        value=5.0
+    )
+    gpa = st.number_input(
+        "GPA",
+        min_value=0.0,
+        max_value=10.0,
+        value=7.5
+    )
+    semester_gpa = st.number_input(
+        "Semester GPA",
+        min_value=0.0,
+        max_value=10.0,
+        value=7.8
+    )
+
+cgpa = st.number_input(
+    "CGPA",
+    min_value=0.0,
+    max_value=10.0,
+    value=7.6
+)
+
+total_daily_commitment = st.number_input(
+    "Total Daily Commitment (Minutes)",
+    min_value=0,
+    value=480
+)
+
+st.subheader("Personal Information")
+
+gender = st.selectbox(
+    "Gender",
+    ["Female", "Male"]
+)
+
+internet_access = st.selectbox(
+    "Internet Access",
+    ["Yes", "No"]
+)
+
+part_time_job = st.selectbox(
+    "Part-Time Job",
+    ["Yes", "No"]
+)
+
+scholarship = st.selectbox(
+    "Scholarship",
+    ["Yes", "No"]
+)
+
+semester_year = st.selectbox(
+    "Semester Year",
+    [1, 2, 3, 4]
+)
+
+department = st.selectbox(
+    "Department",
+    ["BUSINESS", "CS", "ENGINEERING", "SCIENCE"]
+)
+
+parental_education = st.selectbox(
+    "Parental Education",
+    ["High School", "Master", "PhD"]
+)
+
+performance_category = st.selectbox(
+    "Performance Category",
+    ["Excellent", "Needs Improvement"]
+)
+
+st.divider()
+
+if st.button("🔮 Predict Dropout", type="primary"):
+
+    # Create the 27 model features
+    input_data = pd.DataFrame([{
+        "Age": age,
+        "Family_Income": family_income,
+        "Daily_Study_Hours": daily_study_hours,
+        "Attendance_Rate": attendance_rate,
+        "Assignment_Delay_Days": assignment_delay_days,
+        "Travel_Time_Minutes": travel_time_minutes,
+        "Stress_Index": stress_index,
+        "GPA": gpa,
+        "Semester_GPA": semester_gpa,
+        "CGPA": cgpa,
+        "Total_Daily_Commitment_Mins": total_daily_commitment,
+
+        "Gender_Male": 1 if gender == "Male" else 0,
+        "Internet_Access_Yes": 1 if internet_access == "Yes" else 0,
+        "Part_Time_Job_Yes": 1 if part_time_job == "Yes" else 0,
+        "Scholarship_Yes": 1 if scholarship == "Yes" else 0,
+
+        "Semester_Year 2": 1 if semester_year == 2 else 0,
+        "Semester_Year 3": 1 if semester_year == 3 else 0,
+        "Semester_Year 4": 1 if semester_year == 4 else 0,
+
+        "Department_BUSINESS": 1 if department == "BUSINESS" else 0,
+        "Department_CS": 1 if department == "CS" else 0,
+        "Department_ENGINEERING": 1 if department == "ENGINEERING" else 0,
+        "Department_SCIENCE": 1 if department == "SCIENCE" else 0,
+
+        "Parental_Education_High School":
+            1 if parental_education == "High School" else 0,
+        "Parental_Education_Master":
+            1 if parental_education == "Master" else 0,
+        "Parental_Education_PhD":
+            1 if parental_education == "PhD" else 0,
+
+        "Performance_Category_Excellent":
+            1 if performance_category == "Excellent" else 0,
+        "Performance_Category_Needs Improvement":
+            1 if performance_category == "Needs Improvement" else 0
+    }])
+
+    # Ensure exact feature order
+    input_data = input_data[model.feature_names_in_]
+
+    # Prediction
+    prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0]
+
+    dropout_probability = probability[1] * 100
+    not_dropout_probability = probability[0] * 100
+
+    st.subheader("Prediction Result")
+
+    if prediction == 1:
+        st.error("⚠️ High Risk: Student may Drop Out")
+    else:
+        st.success("✅ Low Risk: Student is Not Predicted to Drop Out")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Not Dropout Probability",
+            f"{not_dropout_probability:.2f}%"
+        )
+
+    with col2:
+        st.metric(
+            "Dropout Probability",
+            f"{dropout_probability:.2f}%"
+        )
+
+    st.subheader("Prediction Probability")
+
+    probability_data = pd.DataFrame({
+        "Category": ["Not Dropout", "Dropout"],
+        "Probability (%)": [
+            not_dropout_probability,
+            dropout_probability
+        ]
+    })
+
+    st.bar_chart(
+        probability_data.set_index("Category")
+    )
